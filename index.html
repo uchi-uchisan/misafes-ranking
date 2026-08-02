@@ -140,7 +140,7 @@
 
   <div class="card">
     <h2 style="margin-bottom:4px;">ランキング</h2>
-    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください。全角・半角の違いは自動で吸収されます</div>
+    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください。全角・半角のどちらで入力しても、同じ曲としてまとめて集計されます</div>
     <div class="gen-toggle-row" id="gen-toggle-row"></div>
     <div id="rank-list"><div class="empty">読み込み中...</div></div>
     <div class="last-updated" id="last-updated"></div>
@@ -156,7 +156,7 @@ const COL_GEN = 1;   // 年代が入っている列(A列=0, B列=1, C列=2...)
 const COL_SONG = 2;  // 曲名が入っている列
 // ▲▲▲ ここまで ▲▲▲
 
-const GENERATIONS = ["小学生以下","10代","20〜30代","40〜50代","60代以上"];
+const GENERATIONS = ["小学生以下","10代","20〜30代","40〜50代","60〜70代","70代以上"];
 let currentFilter = "全体";
 let songs = {};
 
@@ -202,11 +202,29 @@ GENERATIONS.forEach(g => {
 });
 
 function updateSubmitBtn(){
+  if(hasVoted){
+    submitBtn.disabled = true;
+    return;
+  }
   submitBtn.disabled = !(selectedGen && songInput.value.trim().length > 0);
 }
 songInput.addEventListener('input', updateSubmitBtn);
 
+const VOTE_FLAG_KEY = 'misafes_song_voted';
+let hasVoted = false;
+try{
+  hasVoted = localStorage.getItem(VOTE_FLAG_KEY) === '1';
+}catch(err){
+  hasVoted = false; // localStorageが使えない環境では制限をかけない
+}
+if(hasVoted){
+  submitBtn.disabled = true;
+  submitBtn.textContent = '投稿済みです(お一人1回まで)';
+  submitStatus.textContent = 'この端末からは、すでにリクエスト済みです';
+}
+
 submitBtn.addEventListener('click', async () => {
+  if(hasVoted) return;
   const song = songInput.value.trim();
   if(!selectedGen || !song) return;
   submitBtn.disabled = true;
@@ -223,13 +241,18 @@ submitBtn.addEventListener('click', async () => {
     submitStatus.textContent = `「${song}」をリクエストしました!`;
     submitStatus.classList.add('success');
     songInput.value = '';
+    hasVoted = true;
+    try{ localStorage.setItem(VOTE_FLAG_KEY, '1'); }catch(err){ /* 保存できなくても致命的ではない */ }
+    submitBtn.textContent = '投稿済みです(お一人1回まで)';
     setTimeout(fetchAndTally, 2000); // 反映まで少し待ってランキングを再取得
   }catch(err){
     submitStatus.textContent = '送信に失敗しました。もう一度お試しください';
     submitStatus.classList.add('error');
   }
   updateSubmitBtn();
-  setTimeout(() => { submitStatus.textContent = ''; submitStatus.classList.remove('success','error'); }, 5000);
+  setTimeout(() => {
+    if(!hasVoted){ submitStatus.textContent = ''; submitStatus.classList.remove('success','error'); }
+  }, 5000);
 });
 
 function normalizeKey(name){
