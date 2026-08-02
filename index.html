@@ -122,6 +122,7 @@
 
   <div class="card">
     <h2>曲をリクエストする</h2>
+    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">※投稿はお一人1回までです</div>
     <div class="gen-toggle-row" id="submit-gen-row"></div>
     <input type="text" id="song-input" placeholder="例:YOASOBI アイドル">
     <button id="submit-btn" disabled>この曲をリクエストする</button>
@@ -211,6 +212,12 @@ function updateSubmitBtn(){
 songInput.addEventListener('input', updateSubmitBtn);
 
 const VOTE_FLAG_KEY = 'misafes_song_voted';
+
+// テスト用:URLに ?reset=1 を付けて開くと、この端末の投稿記録だけ消せる
+if(new URLSearchParams(location.search).get('reset') === '1'){
+  try{ localStorage.removeItem(VOTE_FLAG_KEY); }catch(err){}
+}
+
 let hasVoted = false;
 try{
   hasVoted = localStorage.getItem(VOTE_FLAG_KEY) === '1';
