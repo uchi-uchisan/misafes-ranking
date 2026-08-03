@@ -93,6 +93,45 @@
   .rank-votes{ font-size:18px; font-weight:700; color:var(--lantern-soft); flex-shrink:0; }
   .empty{ text-align:center; color:rgba(42,23,16,0.55); font-size:13px; padding:26px 0; }
 
+  .played-toggle{
+    flex-shrink:0;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(42,23,16,0.25);
+    font-size:11px;
+    color:rgba(42,23,16,0.6);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .played-toggle:hover{ border-color:var(--lantern); color:var(--lantern-soft); }
+  .played-toggle.status-played{
+    background:rgba(42,23,16,0.08);
+    border-color:rgba(42,23,16,0.15);
+    color:rgba(42,23,16,0.5);
+  }
+  .played-toggle.status-skipped{
+    background:rgba(201,64,31,0.08);
+    border-color:rgba(201,64,31,0.3);
+    color:var(--lantern-soft);
+  }
+  .played-badge{
+    flex-shrink:0;
+    padding:6px 10px;
+    border-radius:999px;
+    background:rgba(42,23,16,0.08);
+    color:rgba(42,23,16,0.5);
+    font-size:11px;
+    white-space:nowrap;
+  }
+  .played-badge.badge-skipped{
+    background:rgba(201,64,31,0.1);
+    color:var(--lantern-soft);
+  }
+  .rank-item.status-played{ opacity:0.45; }
+  .rank-item.status-played .rank-title{ text-decoration:line-through; }
+  .rank-item.status-skipped{ opacity:0.6; }
+  .rank-item.status-skipped .rank-title{ text-decoration:line-through; text-decoration-color:var(--lantern-soft); }
+
   .last-updated{ text-align:center; font-size:11px; color:rgba(42,23,16,0.5); margin-top:14px; }
   .live-dot{
     display:inline-block; width:7px; height:7px; border-radius:50%;
@@ -116,13 +155,14 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">みさフェス 音楽リクエスト</div>
-  <h1>曲リクエスト ランキング</h1>
+  <div class="eyebrow" style="font-size:17px; font-weight:700; margin-bottom:4px;">みさフェス</div>
+  <h1>音楽リクエスト ランキング</h1>
   <div class="sub"><span class="live-dot"></span>会場からの投票をリアルタイムで集計中</div>
 
   <div class="card">
     <h2>曲をリクエストする</h2>
-    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">※投稿はお一人1回までです</div>
+    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:6px;">※投稿はお一人3曲までです</div>
+    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください(例:YOASOBI アイドル)。全角・半角のどちらで入力しても、同じ曲としてまとめて集計されます</div>
     <div class="gen-toggle-row" id="submit-gen-row"></div>
     <input type="text" id="song-input" placeholder="例:YOASOBI アイドル">
     <button id="submit-btn" disabled>この曲をリクエストする</button>
@@ -136,12 +176,13 @@
       <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 <b style="color:var(--gold);">各世代の得票1位の曲</b>も、優先的に採用します</li>
       <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 表記が違うだけの同じ曲(例:順番違い・表記違い)は、<b style="color:var(--gold);">主催者の判断で合算</b>することがあります</li>
       <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 当日の選曲・BGMとのバランスを見ながら、担当者が調整して流します</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 担当者が選曲リストからすでに流した曲でも、人気の高い曲は<b style="color:var(--gold);">時間差で改めて</b>お流しすることがあります</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 お流しできない曲もございます</li>
     </ul>
   </div>
 
   <div class="card">
     <h2 style="margin-bottom:4px;">ランキング</h2>
-    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください。全角・半角のどちらで入力しても、同じ曲としてまとめて集計されます</div>
     <div class="gen-toggle-row" id="gen-toggle-row"></div>
     <div id="rank-list"><div class="empty">読み込み中...</div></div>
     <div class="last-updated" id="last-updated"></div>
@@ -153,6 +194,7 @@
 // ▼▼▼ 実際に使う際は、ここをGoogleフォームの回答スプレッドシートを
 //     「ウェブに公開」した際に発行されるCSVのURLに差し替えてください ▼▼▼
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1SsjanvxSB2IIjllQ99ZYf0oDFttxYy0rwTInWvn9ubI/gviz/tq?tqx=out:csv";
+const PLAYED_CSV_URL = "https://docs.google.com/spreadsheets/d/1SsjanvxSB2IIjllQ99ZYf0oDFttxYy0rwTInWvn9ubI/gviz/tq?tqx=out:csv&sheet=Played";
 const COL_GEN = 1;   // 年代が入っている列(A列=0, B列=1, C列=2...)
 const COL_SONG = 2;  // 曲名が入っている列
 // ▲▲▲ ここまで ▲▲▲
@@ -203,7 +245,7 @@ GENERATIONS.forEach(g => {
 });
 
 function updateSubmitBtn(){
-  if(hasVoted){
+  if(votesUsed >= MAX_VOTES){
     submitBtn.disabled = true;
     return;
   }
@@ -211,27 +253,36 @@ function updateSubmitBtn(){
 }
 songInput.addEventListener('input', updateSubmitBtn);
 
-const VOTE_FLAG_KEY = 'misafes_song_voted';
+const MAX_VOTES = 3;
+const VOTE_COUNT_KEY = 'misafes_song_vote_count';
 
 // テスト用:URLに ?reset=1 を付けて開くと、この端末の投稿記録だけ消せる
 if(new URLSearchParams(location.search).get('reset') === '1'){
-  try{ localStorage.removeItem(VOTE_FLAG_KEY); }catch(err){}
+  try{ localStorage.removeItem(VOTE_COUNT_KEY); }catch(err){}
 }
 
-let hasVoted = false;
+let votesUsed = 0;
 try{
-  hasVoted = localStorage.getItem(VOTE_FLAG_KEY) === '1';
+  votesUsed = parseInt(localStorage.getItem(VOTE_COUNT_KEY), 10) || 0;
 }catch(err){
-  hasVoted = false; // localStorageが使えない環境では制限をかけない
+  votesUsed = 0; // localStorageが使えない環境では制限をかけない
 }
-if(hasVoted){
+
+function updateSubmitBtnLabel(){
+  if(votesUsed >= MAX_VOTES){
+    submitBtn.textContent = `投稿済みです(お一人${MAX_VOTES}曲まで)`;
+  }else{
+    submitBtn.textContent = `この曲をリクエストする(残り${MAX_VOTES - votesUsed}曲)`;
+  }
+}
+updateSubmitBtnLabel();
+if(votesUsed >= MAX_VOTES){
   submitBtn.disabled = true;
-  submitBtn.textContent = '投稿済みです(お一人1回まで)';
-  submitStatus.textContent = 'この端末からは、すでにリクエスト済みです';
+  submitStatus.textContent = 'この端末からのリクエストは上限に達しました';
 }
 
 submitBtn.addEventListener('click', async () => {
-  if(hasVoted) return;
+  if(votesUsed >= MAX_VOTES) return;
   const song = songInput.value.trim();
   if(!selectedGen || !song) return;
   submitBtn.disabled = true;
@@ -245,12 +296,15 @@ submitBtn.addEventListener('click', async () => {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ generation: selectedGen, song: song })
     });
-    submitStatus.textContent = `「${song}」をリクエストしました!`;
+    votesUsed++;
+    try{ localStorage.setItem(VOTE_COUNT_KEY, String(votesUsed)); }catch(err){ /* 保存できなくても致命的ではない */ }
+    const remaining = MAX_VOTES - votesUsed;
+    submitStatus.textContent = remaining > 0
+      ? `「${song}」をリクエストしました!(残り${remaining}曲)`
+      : `「${song}」をリクエストしました!(上限に達しました)`;
     submitStatus.classList.add('success');
     songInput.value = '';
-    hasVoted = true;
-    try{ localStorage.setItem(VOTE_FLAG_KEY, '1'); }catch(err){ /* 保存できなくても致命的ではない */ }
-    submitBtn.textContent = '投稿済みです(お一人1回まで)';
+    updateSubmitBtnLabel();
     setTimeout(fetchAndTally, 2000); // 反映まで少し待ってランキングを再取得
   }catch(err){
     submitStatus.textContent = '送信に失敗しました。もう一度お試しください';
@@ -258,7 +312,7 @@ submitBtn.addEventListener('click', async () => {
   }
   updateSubmitBtn();
   setTimeout(() => {
-    if(!hasVoted){ submitStatus.textContent = ''; submitStatus.classList.remove('success','error'); }
+    if(votesUsed < MAX_VOTES){ submitStatus.textContent = ''; submitStatus.classList.remove('success','error'); }
   }, 5000);
 });
 
@@ -311,6 +365,29 @@ async function fetchAndTally(){
       if(gen){ newSongs[key].byGen[gen] = (newSongs[key].byGen[gen] || 0) + 1; }
     }
     songs = newSongs;
+
+    // 「済/見送り」の状態を全員で共有(Playedシートの最新の状態を反映)
+    try{
+      const playedRes = await fetch(PLAYED_CSV_URL, { cache: 'no-store' });
+      if(playedRes.ok){
+        const playedText = await playedRes.text();
+        const playedRows = parseCSV(playedText);
+        const newStatus = {};
+        for(let i = 1; i < playedRows.length; i++){
+          const row = playedRows[i];
+          if(!row || row.length < 3) continue;
+          const key = (row[1] || '').trim();
+          const status = (row[2] || '').trim();
+          if(!key) continue;
+          if(status === 'played' || status === 'skipped'){ newStatus[key] = status; }
+          else{ delete newStatus[key]; }
+        }
+        songStatus = newStatus;
+      }
+    }catch(playedErr){
+      // Playedシートがまだ無い場合などは無視して進める(全曲「未対応」扱いのまま)
+    }
+
     errorBox.classList.remove('show');
     lastUpdated.textContent = '最終更新: ' + new Date().toLocaleTimeString('ja-JP');
     renderRanking();
@@ -320,15 +397,44 @@ async function fetchAndTally(){
   }
 }
 
+const isAdmin = new URLSearchParams(location.search).get('admin') === '1';
+
+const STATUS_KEY = 'misafes_song_status';
+// ページ初回表示〜最初のCSV取得が終わるまでの一時的な表示用(すぐ共有データで上書きされます)
+let songStatus = {}; // { songKey: 'played' | 'skipped' }
+try{
+  const saved = localStorage.getItem(STATUS_KEY);
+  if(saved) songStatus = JSON.parse(saved);
+}catch(err){ songStatus = {}; }
+
+// 未対応→済→見送り→未対応 の順に切り替える
+async function cycleStatus(key){
+  const current = songStatus[key] || 'none';
+  const next = current === 'none' ? 'played' : current === 'played' ? 'skipped' : 'none';
+  if(next === 'none'){ delete songStatus[key]; } else { songStatus[key] = next; }
+  renderRanking(); // まず自分の画面だけ即座に反映
+
+  try{
+    await fetch(SUBMIT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'togglePlayed', songKey: key, status: next === 'none' ? 'unplayed' : next })
+    });
+  }catch(err){
+    // 送信に失敗しても、次回の自動更新で共有状態と同期される
+  }
+}
+
 function renderRanking(){
-  let entries = Object.values(songs);
+  let entries = Object.entries(songs).map(([key, s]) => ({ key, ...s }));
   if(currentFilter !== '全体'){
     entries = entries
       .map(s => ({ ...s, filteredCount: s.byGen[currentFilter] || 0 }))
       .filter(s => s.filteredCount > 0)
       .sort((a, b) => b.filteredCount - a.filteredCount);
   }else{
-    entries = entries.slice().sort((a, b) => b.total - a.total);
+    entries = entries.sort((a, b) => b.total - a.total);
   }
 
   if(entries.length === 0){
@@ -342,8 +448,20 @@ function renderRanking(){
     const genBreakdown = Object.entries(s.byGen)
       .sort((a,b) => b[1]-a[1])
       .map(([g,c]) => `${g}:${c}`).join(' / ');
+    const status = songStatus[s.key] || 'none'; // 'none' | 'played' | 'skipped'
     const row = document.createElement('div');
-    row.className = 'rank-item';
+    row.className = 'rank-item' + (status !== 'none' ? ' status-' + status : '');
+
+    let toggleHtml = '';
+    if(isAdmin){
+      const nextLabel = status === 'none' ? '済にする' : status === 'played' ? '音源なしにする' : '取り消す';
+      toggleHtml = `<div class="played-toggle status-${status}">${nextLabel}</div>`;
+    }else if(status === 'played'){
+      toggleHtml = '<div class="played-badge badge-played">済</div>';
+    }else if(status === 'skipped'){
+      toggleHtml = '<div class="played-badge badge-skipped">音源なし</div>';
+    }
+
     row.innerHTML = `
       <div class="rank-num ${i < 3 ? 'top' : ''}">${i+1}</div>
       <div class="rank-info">
@@ -351,7 +469,14 @@ function renderRanking(){
         <div class="rank-sub">${escapeHtml(genBreakdown)}</div>
       </div>
       <div class="rank-votes">${count}</div>
+      ${toggleHtml}
     `;
+    if(isAdmin){
+      row.querySelector('.played-toggle').addEventListener('click', (e) => {
+        e.stopPropagation();
+        cycleStatus(s.key);
+      });
+    }
     rankList.appendChild(row);
   });
 }
