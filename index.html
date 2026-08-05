@@ -4,56 +4,90 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>みさフェス 曲リクエストランキング</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --night: #e8c9a0;
-    --night-deep: #ecd2ab;
-    --lantern: #c9401f;
-    --lantern-soft: #a8331a;
-    --gold: #8a5a12;
+    --night: #f7f2e6;
+    --night-deep: #f2ead8;
+    --lantern: #c93b2e;
+    --lantern-soft: #a12c22;
+    --gold: #c9a227;
     --paper: #ffffff;
-    --ink: #2a1710;
+    --ink: #22242a;
+    --indigo-deep: #16213e;
+    --indigo-mid: #24345c;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
-  html{ background:#ecd2ab !important; color-scheme:light; }
+  html{ background:var(--indigo-deep) !important; color-scheme:light; }
   body{
     min-height:100vh;
-    background-color:#ecd2ab !important;
+    background:var(--night-deep) !important;
     background-image:
-      radial-gradient(circle at 15% 10%, rgba(232,84,42,0.16), transparent 55%),
-      radial-gradient(circle at 85% 90%, rgba(138,90,18,0.14), transparent 55%);
-    font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
-    color:#2a1710 !important;
+      repeating-radial-gradient(circle at 0 0, transparent 0, transparent 26px, rgba(201,162,39,0.06) 27px, transparent 28px) !important;
+    background-size:52px 52px;
+    font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+    color:var(--ink) !important;
   }
-  .wrap{ max-width:520px; margin:0 auto; padding:28px 18px 60px; }
-  .eyebrow{ color:var(--gold); letter-spacing:0.3em; font-size:11px; text-align:center; margin-bottom:8px; }
-  h1{ text-align:center; font-size:22px; margin-bottom:6px; }
-  .sub{ text-align:center; font-size:12.5px; color:rgba(42,23,16,0.8); margin-bottom:22px; }
+
+  .noren{
+    position:relative;
+    background:var(--indigo-deep);
+    padding:34px 20px 26px;
+    text-align:center;
+    clip-path:polygon(
+      0 0, 100% 0, 100% 88%,
+      93.75% 100%, 87.5% 88%, 81.25% 100%, 75% 88%, 68.75% 100%,
+      62.5% 88%, 56.25% 100%, 50% 88%, 43.75% 100%, 37.5% 88%,
+      31.25% 100%, 25% 88%, 18.75% 100%, 12.5% 88%, 6.25% 100%, 0 88%
+    );
+  }
+  .noren-eyebrow{
+    font-family:"RocknRoll One", sans-serif;
+    color:var(--gold);
+    font-size:12px;
+    letter-spacing:0.3em;
+    margin-bottom:8px;
+  }
+  .noren h1{
+    font-family:"RocknRoll One", sans-serif;
+    color:var(--night);
+    font-size:22px;
+    letter-spacing:0.05em;
+    text-shadow:2px 2px 0 rgba(0,0,0,0.2);
+  }
+  .noren .sub{
+    color:rgba(247,242,230,0.65);
+    font-size:12px;
+    margin-top:10px;
+  }
+
+  .wrap{ max-width:520px; margin:0 auto; padding:0 18px 60px; }
 
   .card{
-    background:rgba(255,255,255,0.65);
-    border:1px solid rgba(138,90,18,0.35);
-    border-radius:16px;
+    background:var(--paper);
+    border:2px solid var(--indigo-mid);
+    box-shadow:4px 4px 0 rgba(0,0,0,0.12);
     padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 4px 18px rgba(42,23,16,0.08);
+    margin-top:20px;
+    margin-bottom:0;
   }
-  .card h2{ font-size:14px; color:var(--gold); margin-bottom:12px; letter-spacing:0.03em; }
+  .card h2{ font-family:"Zen Kaku Gothic New",sans-serif; font-size:14px; color:var(--lantern-soft); margin-bottom:12px; font-weight:900; letter-spacing:0.02em; }
 
   .gen-toggle-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
   .gen-toggle{
-    padding:7px 13px; border-radius:999px;
-    border:1px solid rgba(42,23,16,0.2);
-    font-size:12px; color:rgba(42,23,16,0.78); cursor:pointer;
+    padding:7px 13px;
+    border:1.5px solid rgba(34,36,42,0.25);
+    font-size:12px; color:rgba(34,36,42,0.78); cursor:pointer;
   }
-  .gen-toggle.active{ border-color:var(--lantern); color:var(--lantern-soft); background:rgba(232,84,42,0.08); }
+  .gen-toggle.active{ border-color:var(--lantern); color:#fff; background:var(--lantern); }
 
   input[type=text]{
     width:100%;
     padding:12px 14px;
-    background:rgba(255,255,255,0.7);
-    border:1px solid rgba(42,23,16,0.2);
-    border-radius:10px;
+    background:#fff;
+    border:1.5px solid rgba(34,36,42,0.22);
     color:var(--ink);
     font-size:14px;
     margin-bottom:12px;
@@ -63,68 +97,67 @@
   #submit-btn{
     width:100%;
     padding:14px;
-    background:linear-gradient(135deg, var(--lantern-soft), var(--lantern));
-    color:#fff8f0;
-    border:none;
-    border-radius:10px;
+    background:var(--lantern);
+    color:#fff;
+    border:2px solid var(--indigo-deep);
+    box-shadow:3px 3px 0 rgba(0,0,0,0.15);
+    font-family:"Zen Kaku Gothic New",sans-serif;
     font-size:14px;
-    font-weight:600;
+    font-weight:900;
     cursor:pointer;
   }
-  #submit-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  #submit-btn:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none; }
 
   .status-line{
     font-size:12px;
-    color:rgba(42,23,16,0.6);
+    color:rgba(34,36,42,0.6);
     text-align:center;
     margin-top:10px;
     min-height:16px;
   }
-  .status-line.error{ color:var(--lantern); font-weight:600; }
-  .status-line.success{ color:var(--gold); font-weight:600; }
+  .status-line.error{ color:var(--lantern); font-weight:700; }
+  .status-line.success{ color:var(--gold); font-weight:700; }
 
-  .rank-item{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(42,23,16,0.08); }
+  .rank-item{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(34,36,42,0.1); }
   .rank-item:last-child{ border-bottom:none; }
-  .rank-num{ width:28px; height:28px; border-radius:50%; background:rgba(138,90,18,0.12); color:var(--gold); display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; flex-shrink:0; }
+  .rank-num{ width:28px; height:28px; background:rgba(36,52,92,0.1); color:var(--indigo-mid); display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:900; flex-shrink:0; }
   .rank-num.top{ background:var(--gold); color:#fff; }
   .rank-info{ flex:1; min-width:0; }
-  .rank-title{ font-size:15px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .rank-sub{ font-size:11.5px; color:rgba(42,23,16,0.6); }
-  .rank-votes{ font-size:18px; font-weight:700; color:var(--lantern-soft); flex-shrink:0; }
-  .empty{ text-align:center; color:rgba(42,23,16,0.55); font-size:13px; padding:26px 0; }
+  .rank-title{ font-size:15px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:700; }
+  .rank-sub{ font-size:11.5px; color:rgba(34,36,42,0.6); }
+  .rank-votes{ font-size:18px; font-weight:900; color:var(--lantern-soft); flex-shrink:0; }
+  .empty{ text-align:center; color:rgba(34,36,42,0.55); font-size:13px; padding:26px 0; }
 
   .played-toggle{
     flex-shrink:0;
     padding:6px 10px;
-    border-radius:999px;
-    border:1px solid rgba(42,23,16,0.25);
+    border:1.5px solid rgba(34,36,42,0.25);
     font-size:11px;
-    color:rgba(42,23,16,0.6);
+    color:rgba(34,36,42,0.6);
     cursor:pointer;
     white-space:nowrap;
   }
   .played-toggle:hover{ border-color:var(--lantern); color:var(--lantern-soft); }
   .played-toggle.status-played{
-    background:rgba(42,23,16,0.08);
-    border-color:rgba(42,23,16,0.15);
-    color:rgba(42,23,16,0.5);
+    background:rgba(34,36,42,0.06);
+    border-color:rgba(34,36,42,0.15);
+    color:rgba(34,36,42,0.5);
   }
   .played-toggle.status-skipped{
-    background:rgba(201,64,31,0.08);
-    border-color:rgba(201,64,31,0.3);
+    background:rgba(201,59,46,0.06);
+    border-color:rgba(201,59,46,0.3);
     color:var(--lantern-soft);
   }
   .played-badge{
     flex-shrink:0;
     padding:6px 10px;
-    border-radius:999px;
-    background:rgba(42,23,16,0.08);
-    color:rgba(42,23,16,0.5);
+    background:rgba(34,36,42,0.06);
+    color:rgba(34,36,42,0.5);
     font-size:11px;
     white-space:nowrap;
   }
   .played-badge.badge-skipped{
-    background:rgba(201,64,31,0.1);
+    background:rgba(201,59,46,0.08);
     color:var(--lantern-soft);
   }
   .rank-item.status-played{ opacity:0.45; }
@@ -132,18 +165,42 @@
   .rank-item.status-skipped{ opacity:0.6; }
   .rank-item.status-skipped .rank-title{ text-decoration:line-through; text-decoration-color:var(--lantern-soft); }
 
-  .last-updated{ text-align:center; font-size:11px; color:rgba(42,23,16,0.5); margin-top:14px; }
+  /* 「済」にした後で、さらに票が入った曲を目立たせる */
+  .rank-item.has-new-votes{
+    opacity:1;
+    background:rgba(201,162,39,0.08);
+    border-left:3px solid var(--gold);
+    padding-left:9px;
+    margin-left:-12px;
+  }
+  .rank-item.has-new-votes .rank-title{ text-decoration:none; }
+  .new-votes-badge{
+    display:inline-block;
+    margin-top:3px;
+    padding:2px 8px;
+    background:var(--gold);
+    color:#fff;
+    font-size:10.5px;
+    font-weight:900;
+  }
+  .played-hint{
+    margin-top:3px;
+    font-size:10.5px;
+    font-style:italic;
+    color:rgba(34,36,42,0.4);
+  }
+
+  .last-updated{ text-align:center; font-size:11px; color:rgba(34,36,42,0.5); margin-top:14px; }
   .live-dot{
     display:inline-block; width:7px; height:7px; border-radius:50%;
-    background:var(--lantern); margin-right:5px;
+    background:var(--gold); margin-right:5px;
     animation: pulse 1.6s infinite;
   }
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
 
   .error-box{
-    background:rgba(232,84,42,0.08);
-    border:1px solid rgba(232,84,42,0.3);
-    border-radius:10px;
+    background:rgba(201,59,46,0.06);
+    border:1.5px solid rgba(201,59,46,0.3);
     padding:12px 14px;
     font-size:12.5px;
     color:var(--lantern-soft);
@@ -154,15 +211,17 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="eyebrow" style="font-size:17px; font-weight:700; margin-bottom:4px;">みさフェス</div>
+<div class="noren">
+  <div class="noren-eyebrow">みさフェス</div>
   <h1>音楽リクエスト ランキング</h1>
   <div class="sub"><span class="live-dot"></span>会場からの投票をリアルタイムで集計中</div>
+</div>
 
+<div class="wrap">
   <div class="card">
     <h2>曲をリクエストする</h2>
-    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:6px;">※投稿はお一人3曲までです</div>
-    <div style="font-size:11.5px; color:rgba(42,23,16,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください(例:YOASOBI アイドル)。全角・半角のどちらで入力しても、同じ曲としてまとめて集計されます</div>
+    <div style="font-size:11.5px; color:rgba(34,36,42,0.55); margin-bottom:6px;">※投稿はお一人1時間あたり3曲までです(1時間経つとまたリクエストできます)</div>
+    <div style="font-size:11.5px; color:rgba(34,36,42,0.55); margin-bottom:12px;">「アーティスト名 曲名」の形で入力してください(例:YOASOBI アイドル)。全角・半角のどちらで入力しても、同じ曲としてまとめて集計されます</div>
     <div class="gen-toggle-row" id="submit-gen-row"></div>
     <input type="text" id="song-input" placeholder="例:YOASOBI アイドル">
     <button id="submit-btn" disabled>この曲をリクエストする</button>
@@ -172,12 +231,12 @@
   <div class="card">
     <h2>採用ルール</h2>
     <ul style="list-style:none; display:flex; flex-direction:column; gap:8px;">
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 得票数の<b style="color:var(--gold);">上位から</b>採用します</li>
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 <b style="color:var(--gold);">各世代の得票1位の曲</b>も、優先的に採用します</li>
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 表記が違うだけの同じ曲(例:順番違い・表記違い)は、<b style="color:var(--gold);">主催者の判断で合算</b>することがあります</li>
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 当日の選曲・BGMとのバランスを見ながら、担当者が調整して流します</li>
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 担当者が選曲リストからすでに流した曲でも、人気の高い曲は<b style="color:var(--gold);">時間差で改めて</b>お流しすることがあります</li>
-      <li style="font-size:12.5px; line-height:1.6; color:rgba(42,23,16,0.85);">🏮 お流しできない曲もございます</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 得票数の<b style="color:var(--gold);">上位から</b>採用します</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 <b style="color:var(--gold);">各世代の得票1位の曲</b>も、優先的に採用します</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 表記が違うだけの同じ曲(例:順番違い・表記違い)は、<b style="color:var(--gold);">主催者の判断で合算</b>することがあります</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 当日の選曲・BGMとのバランスを見ながら、担当者が調整して流します</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 担当者があらかじめ用意した選曲リストに加えて、ランキング上位の曲もあわせて流すため、選曲リストと重なる曲が出てくることがあります。すでに流した曲でも、人気の高い曲は<b style="color:var(--gold);">時間差で改めて</b>お流しすることがあります</li>
+      <li style="font-size:12.5px; line-height:1.6; color:rgba(34,36,42,0.85);">🏮 お流しできない曲もございます</li>
     </ul>
   </div>
 
@@ -254,31 +313,49 @@ function updateSubmitBtn(){
 songInput.addEventListener('input', updateSubmitBtn);
 
 const MAX_VOTES = 3;
-const VOTE_COUNT_KEY = 'misafes_song_vote_count';
+const VOTE_RESET_MS = 60 * 60 * 1000; // 1時間ごとに投稿回数をリセット
+const VOTE_STATE_KEY = 'misafes_song_vote_state';
 
 // テスト用:URLに ?reset=1 を付けて開くと、この端末の投稿記録だけ消せる
 if(new URLSearchParams(location.search).get('reset') === '1'){
-  try{ localStorage.removeItem(VOTE_COUNT_KEY); }catch(err){}
+  try{ localStorage.removeItem(VOTE_STATE_KEY); }catch(err){}
 }
 
 let votesUsed = 0;
+let voteWindowStart = Date.now();
 try{
-  votesUsed = parseInt(localStorage.getItem(VOTE_COUNT_KEY), 10) || 0;
+  const saved = JSON.parse(localStorage.getItem(VOTE_STATE_KEY) || 'null');
+  if(saved && typeof saved.count === 'number' && typeof saved.start === 'number'){
+    if(Date.now() - saved.start < VOTE_RESET_MS){
+      votesUsed = saved.count;
+      voteWindowStart = saved.start;
+    }
+    // 1時間以上経過していれば、votesUsed=0・voteWindowStart=今のまま(自動リセット)
+  }
 }catch(err){
   votesUsed = 0; // localStorageが使えない環境では制限をかけない
 }
 
+function saveVoteState(){
+  try{ localStorage.setItem(VOTE_STATE_KEY, JSON.stringify({ count: votesUsed, start: voteWindowStart })); }catch(err){}
+}
+
+function minutesUntilReset(){
+  const elapsed = Date.now() - voteWindowStart;
+  return Math.max(1, Math.ceil((VOTE_RESET_MS - elapsed) / 60000));
+}
+
 function updateSubmitBtnLabel(){
   if(votesUsed >= MAX_VOTES){
-    submitBtn.textContent = `投稿済みです(お一人${MAX_VOTES}曲まで)`;
+    submitBtn.textContent = `投稿済みです(あと約${minutesUntilReset()}分でリクエストできます)`;
   }else{
-    submitBtn.textContent = `この曲をリクエストする(残り${MAX_VOTES - votesUsed}曲)`;
+    submitBtn.textContent = `この曲をリクエストする(残り${MAX_VOTES - votesUsed}曲/1時間)`;
   }
 }
 updateSubmitBtnLabel();
 if(votesUsed >= MAX_VOTES){
   submitBtn.disabled = true;
-  submitStatus.textContent = 'この端末からのリクエストは上限に達しました';
+  submitStatus.textContent = `この端末からのリクエストは上限に達しました。あと約${minutesUntilReset()}分で再びリクエストできます`;
 }
 
 submitBtn.addEventListener('click', async () => {
@@ -296,18 +373,19 @@ submitBtn.addEventListener('click', async () => {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ generation: selectedGen, song: song })
     });
+    if(votesUsed === 0){ voteWindowStart = Date.now(); } // このリクエストで新しい1時間の枠を開始
     votesUsed++;
-    try{ localStorage.setItem(VOTE_COUNT_KEY, String(votesUsed)); }catch(err){ /* 保存できなくても致命的ではない */ }
+    saveVoteState();
     const remaining = MAX_VOTES - votesUsed;
     submitStatus.textContent = remaining > 0
-      ? `「${song}」をリクエストしました!(残り${remaining}曲)`
-      : `「${song}」をリクエストしました!(上限に達しました)`;
+      ? `「${song}」をリクエストしました!(残り${remaining}曲/1時間)`
+      : `「${song}」をリクエストしました!(1時間の上限に達しました)`;
     submitStatus.classList.add('success');
     songInput.value = '';
     updateSubmitBtnLabel();
     setTimeout(fetchAndTally, 2000); // 反映まで少し待ってランキングを再取得
   }catch(err){
-    submitStatus.textContent = '送信に失敗しました。もう一度お試しください';
+    submitStatus.textContent = '送信に失敗しました。電波が混み合っている時は、少し時間を置いてからもう一度お試しください';
     submitStatus.classList.add('error');
   }
   updateSubmitBtn();
@@ -373,16 +451,25 @@ async function fetchAndTally(){
         const playedText = await playedRes.text();
         const playedRows = parseCSV(playedText);
         const newStatus = {};
+        const newVotesAtPlay = {};
         for(let i = 1; i < playedRows.length; i++){
           const row = playedRows[i];
           if(!row || row.length < 3) continue;
           const key = (row[1] || '').trim();
           const status = (row[2] || '').trim();
+          const votesAtTime = parseInt(row[3], 10);
           if(!key) continue;
-          if(status === 'played' || status === 'skipped'){ newStatus[key] = status; }
-          else{ delete newStatus[key]; }
+          if(status === 'played' || status === 'skipped'){
+            newStatus[key] = status;
+            if(status === 'played' && !isNaN(votesAtTime)){ newVotesAtPlay[key] = votesAtTime; }
+            else{ delete newVotesAtPlay[key]; }
+          }else{
+            delete newStatus[key];
+            delete newVotesAtPlay[key];
+          }
         }
         songStatus = newStatus;
+        songVotesAtPlay = newVotesAtPlay;
       }
     }catch(playedErr){
       // Playedシートがまだ無い場合などは無視して進める(全曲「未対応」扱いのまま)
@@ -402,6 +489,7 @@ const isAdmin = new URLSearchParams(location.search).get('admin') === '1';
 const STATUS_KEY = 'misafes_song_status';
 // ページ初回表示〜最初のCSV取得が終わるまでの一時的な表示用(すぐ共有データで上書きされます)
 let songStatus = {}; // { songKey: 'played' | 'skipped' }
+let songVotesAtPlay = {}; // { songKey: 済にした時点の得票数 }
 try{
   const saved = localStorage.getItem(STATUS_KEY);
   if(saved) songStatus = JSON.parse(saved);
@@ -411,7 +499,9 @@ try{
 async function cycleStatus(key){
   const current = songStatus[key] || 'none';
   const next = current === 'none' ? 'played' : current === 'played' ? 'skipped' : 'none';
-  if(next === 'none'){ delete songStatus[key]; } else { songStatus[key] = next; }
+  const currentVotes = (songs[key] && songs[key].total) || 0;
+  if(next === 'none'){ delete songStatus[key]; delete songVotesAtPlay[key]; }
+  else{ songStatus[key] = next; if(next === 'played'){ songVotesAtPlay[key] = currentVotes; } else { delete songVotesAtPlay[key]; } }
   renderRanking(); // まず自分の画面だけ即座に反映
 
   try{
@@ -419,7 +509,12 @@ async function cycleStatus(key){
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'togglePlayed', songKey: key, status: next === 'none' ? 'unplayed' : next })
+      body: JSON.stringify({
+        action: 'togglePlayed',
+        songKey: key,
+        status: next === 'none' ? 'unplayed' : next,
+        votesAtTime: next === 'played' ? currentVotes : ''
+      })
     });
   }catch(err){
     // 送信に失敗しても、次回の自動更新で共有状態と同期される
@@ -452,6 +547,16 @@ function renderRanking(){
     const row = document.createElement('div');
     row.className = 'rank-item' + (status !== 'none' ? ' status-' + status : '');
 
+    // 「済」にした後で、さらに票が増えているかチェック
+    let newVotesHtml = '';
+    if(status === 'played' && songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
+      const gained = s.total - songVotesAtPlay[s.key];
+      row.classList.add('has-new-votes');
+      newVotesHtml = `<div class="new-votes-badge">+${gained}票 その後追加</div>`;
+    }else if(status === 'played'){
+      newVotesHtml = `<div class="played-hint">済みでも、追加投票があればもう一度流れるかも…?</div>`;
+    }
+
     let toggleHtml = '';
     if(isAdmin){
       const nextLabel = status === 'none' ? '済にする' : status === 'played' ? '音源なしにする' : '取り消す';
@@ -467,6 +572,7 @@ function renderRanking(){
       <div class="rank-info">
         <div class="rank-title">${escapeHtml(s.name)}</div>
         <div class="rank-sub">${escapeHtml(genBreakdown)}</div>
+        ${newVotesHtml}
       </div>
       <div class="rank-votes">${count}</div>
       ${toggleHtml}
