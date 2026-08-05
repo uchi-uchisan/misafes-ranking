@@ -128,6 +128,7 @@
   .rank-votes{ font-size:18px; font-weight:900; color:var(--lantern-soft); flex-shrink:0; }
   .empty{ text-align:center; color:rgba(34,36,42,0.55); font-size:13px; padding:26px 0; }
 
+  .played-toggle-col{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
   .played-toggle{
     flex-shrink:0;
     padding:6px 10px;
@@ -135,6 +136,13 @@
     font-size:11px;
     color:rgba(34,36,42,0.6);
     cursor:pointer;
+    white-space:nowrap;
+  }
+  .played-reset-link{
+    font-size:10px;
+    color:var(--lantern-soft);
+    cursor:pointer;
+    text-decoration:underline;
     white-space:nowrap;
   }
   .played-toggle:hover{ border-color:var(--lantern); color:var(--lantern-soft); }
@@ -470,6 +478,25 @@ async function fetchAndTally(){
         }
         songStatus = newStatus;
         songVotesAtPlay = newVotesAtPlay;
+
+        // 直近60秒以内に自分が操作した曲は、サーバー側がまだ追いついていない可能性があるため、
+        // サーバーの返答がこちらの操作と一致するまでは、自分の操作結果を優先する
+        const now = Date.now();
+        for(const key of Object.keys(recentLocalChanges)){
+          const change = recentLocalChanges[key];
+          if(change.until < now){ delete recentLocalChanges[key]; continue; }
+          const serverStatus = newStatus[key] || 'unplayed';
+          if(serverStatus === change.status){
+            delete recentLocalChanges[key]; // サーバーに反映され確認できたので、以後はサーバー側の値を信用する
+          }else{
+            // まだ反映されていないので、自分の操作結果をそのまま維持する
+            if(change.status === 'unplayed'){ delete songStatus[key]; delete songVotesAtPlay[key]; }
+            else{
+              songStatus[key] = change.status;
+              if(change.votesAtTime !== undefined){ songVotesAtPlay[key] = change.votesAtTime; }
+            }
+          }
+        }
       }
     }catch(playedErr){
       // Playedシートがまだ無い場合などは無視して進める(全曲「未対応」扱いのまま)
@@ -490,6 +517,7 @@ const STATUS_KEY = 'misafes_song_status';
 // ページ初回表示〜最初のCSV取得が終わるまでの一時的な表示用(すぐ共有データで上書きされます)
 let songStatus = {}; // { songKey: 'played' | 'skipped' }
 let songVotesAtPlay = {}; // { songKey: 済にした時点の得票数 }
+const recentLocalChanges = {}; // { songKey: { status, votesAtTime, until } } 直近の自分の操作を一定時間守る
 try{
   const saved = localStorage.getItem(STATUS_KEY);
   if(saved) songStatus = JSON.parse(saved);
@@ -502,6 +530,14 @@ async function cycleStatus(key){
   const currentVotes = (songs[key] && songs[key].total) || 0;
   if(next === 'none'){ delete songStatus[key]; delete songVotesAtPlay[key]; }
   else{ songStatus[key] = next; if(next === 'played'){ songVotesAtPlay[key] = currentVotes; } else { delete songVotesAtPlay[key]; } }
+
+  // この操作を60秒間「確定」として扱い、その間はサーバー側の古いデータで上書きしない
+  recentLocalChanges[key] = {
+    status: next === 'none' ? 'unplayed' : next,
+    votesAtTime: next === 'played' ? currentVotes : undefined,
+    until: Date.now() + 60000
+  };
+
   renderRanking(); // まず自分の画面だけ即座に反映
 
   try{
@@ -515,6 +551,25 @@ async function cycleStatus(key){
         status: next === 'none' ? 'unplayed' : next,
         votesAtTime: next === 'played' ? currentVotes : ''
       })
+    });
+  }catch(err){
+    // 送信に失敗しても、次回の自動更新で共有状態と同期される
+  }
+}
+
+// 「今すぐ取り消す」:状態に関わらず、その場で一発で未対応に戻す
+async function resetStatus(key){
+  delete songStatus[key];
+  delete songVotesAtPlay[key];
+  recentLocalChanges[key] = { status: 'unplayed', votesAtTime: undefined, until: Date.now() + 60000 };
+  renderRanking();
+
+  try{
+    await fetch(SUBMIT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'togglePlayed', songKey: key, status: 'unplayed', votesAtTime: '' })
     });
   }catch(err){
     // 送信に失敗しても、次回の自動更新で共有状態と同期される
@@ -561,6 +616,9 @@ function renderRanking(){
     if(isAdmin){
       const nextLabel = status === 'none' ? '済にする' : status === 'played' ? '音源なしにする' : '取り消す';
       toggleHtml = `<div class="played-toggle status-${status}">${nextLabel}</div>`;
+      if(status !== 'none'){
+        toggleHtml += `<div class="played-reset-link">✕ 今すぐ取り消す</div>`;
+      }
     }else if(status === 'played'){
       toggleHtml = '<div class="played-badge badge-played">済</div>';
     }else if(status === 'skipped'){
@@ -575,13 +633,20 @@ function renderRanking(){
         ${newVotesHtml}
       </div>
       <div class="rank-votes">${count}</div>
-      ${toggleHtml}
+      <div class="played-toggle-col">${toggleHtml}</div>
     `;
     if(isAdmin){
       row.querySelector('.played-toggle').addEventListener('click', (e) => {
         e.stopPropagation();
         cycleStatus(s.key);
       });
+      const resetLink = row.querySelector('.played-reset-link');
+      if(resetLink){
+        resetLink.addEventListener('click', (e) => {
+          e.stopPropagation();
+          resetStatus(s.key);
+        });
+      }
     }
     rankList.appendChild(row);
   });
