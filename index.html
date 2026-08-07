@@ -617,7 +617,7 @@ function renderRanking(){
     if(status === 'played' && songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
       const gained = s.total - songVotesAtPlay[s.key];
       row.classList.add('has-new-votes');
-      newVotesHtml = `<div class="new-votes-badge">🔥 +${gained}票 その後追加</div>`;
+      newVotesHtml = `<div class="new-votes-badge">🔥 済み後、追加で+${gained}票</div>`;
     }else if(status === 'played'){
       newVotesHtml = `<div class="played-hint">済みでも、追加投票があればもう一度流れるかも…?</div>`;
     }
