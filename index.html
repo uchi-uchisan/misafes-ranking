@@ -176,20 +176,30 @@
   /* 「済」にした後で、さらに票が入った曲を目立たせる */
   .rank-item.has-new-votes{
     opacity:1;
-    background:rgba(201,162,39,0.08);
-    border-left:3px solid var(--gold);
+    background:rgba(201,162,39,0.14);
+    border-left:5px solid var(--gold);
     padding-left:9px;
     margin-left:-12px;
+    box-shadow:0 2px 8px rgba(201,162,39,0.25);
   }
-  .rank-item.has-new-votes .rank-title{ text-decoration:none; }
+  .rank-item.has-new-votes .rank-title{ text-decoration:none; font-weight:900; }
   .new-votes-badge{
-    display:inline-block;
-    margin-top:3px;
-    padding:2px 8px;
-    background:var(--gold);
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    margin-top:5px;
+    padding:4px 11px;
+    background:linear-gradient(135deg, var(--gold), #c9401f);
     color:#fff;
-    font-size:10.5px;
+    font-size:11.5px;
     font-weight:900;
+    border-radius:20px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.25);
+    animation:new-votes-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes new-votes-pulse{
+    0%, 100%{ transform:scale(1); }
+    50%{ transform:scale(1.06); }
   }
   .played-hint{
     margin-top:3px;
@@ -266,7 +276,7 @@ const COL_GEN = 1;   // 年代が入っている列(A列=0, B列=1, C列=2...)
 const COL_SONG = 2;  // 曲名が入っている列
 // ▲▲▲ ここまで ▲▲▲
 
-const GENERATIONS = ["小学生以下","10代","20〜30代","40〜50代","60〜70代","70代以上"];
+const GENERATIONS = ["10代以下","20〜30代","40〜50代","60〜70代","70代以上"];
 let currentFilter = "全体";
 let songs = {};
 
@@ -607,7 +617,7 @@ function renderRanking(){
     if(status === 'played' && songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
       const gained = s.total - songVotesAtPlay[s.key];
       row.classList.add('has-new-votes');
-      newVotesHtml = `<div class="new-votes-badge">+${gained}票 その後追加</div>`;
+      newVotesHtml = `<div class="new-votes-badge">🔥 +${gained}票 その後追加</div>`;
     }else if(status === 'played'){
       newVotesHtml = `<div class="played-hint">済みでも、追加投票があればもう一度流れるかも…?</div>`;
     }
