@@ -145,6 +145,101 @@
     text-decoration:underline;
     white-space:nowrap;
   }
+  .played-fromlist-link{
+    font-size:10px;
+    color:rgba(34,36,42,0.55);
+    cursor:pointer;
+    text-decoration:underline;
+    white-space:nowrap;
+    margin-top:2px;
+  }
+  .now-playing-toggle{
+    margin-top:6px;
+    padding:5px 10px;
+    border:1.5px solid var(--gold);
+    color:var(--gold);
+    font-size:10.5px;
+    font-weight:900;
+    cursor:pointer;
+    white-space:nowrap;
+    text-align:center;
+  }
+  .now-playing-toggle.active{
+    background:var(--gold);
+    color:#fff;
+  }
+  .rank-item.is-now-playing{
+    background:rgba(201,64,31,0.1);
+    box-shadow:0 0 0 2px var(--lantern) inset;
+  }
+  .now-playing-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    margin-top:3px;
+    padding:4px 11px;
+    background:var(--lantern);
+    color:#fff;
+    font-size:11.5px;
+    font-weight:900;
+    border-radius:20px;
+    animation:new-votes-pulse 1.2s ease-in-out infinite;
+  }
+  .from-list-badge{
+    display:inline-block;
+    margin-top:3px;
+    font-size:10.5px;
+    color:rgba(34,36,42,0.55);
+  }
+  .played-badge.badge-fromlist{
+    background:rgba(34,36,42,0.06);
+    border:1px solid rgba(34,36,42,0.15);
+    color:rgba(34,36,42,0.5);
+    padding:4px 10px;
+    font-size:11px;
+  }
+  .admin-played-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    cursor:pointer;
+  }
+  .admin-played-arrow{
+    font-size:12px;
+    color:var(--indigo-mid);
+    transition:transform 0.2s;
+  }
+  .admin-played-arrow.open{ transform:rotate(180deg); }
+  #admin-played-list{
+    margin-top:12px;
+    max-height:320px;
+    overflow-y:auto;
+  }
+  .admin-played-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid rgba(34,36,42,0.08);
+    font-size:12.5px;
+  }
+  .admin-played-row:last-child{ border-bottom:none; }
+  .admin-played-name{ flex:1; color:var(--ink); }
+  .admin-played-name.from-list{ color:rgba(34,36,42,0.5); }
+  .admin-played-time{ font-size:10.5px; color:rgba(34,36,42,0.45); white-space:nowrap; }
+  .admin-played-copy-btn{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    padding:9px;
+    background:rgba(34,36,42,0.05);
+    border:1px solid rgba(34,36,42,0.15);
+    border-radius:6px;
+    font-size:12px;
+    color:var(--ink);
+    cursor:pointer;
+  }
   .played-toggle:hover{ border-color:var(--lantern); color:var(--lantern-soft); }
   .played-toggle.status-played{
     background:rgba(34,36,42,0.06);
@@ -258,6 +353,14 @@
     </ul>
   </div>
 
+  <div class="card" id="admin-played-list-card" style="display:none;">
+    <div class="admin-played-header" id="admin-played-toggle">
+      <h2 style="margin-bottom:0;">📋 これまでに流した曲一覧(あなただけに表示)</h2>
+      <span class="admin-played-arrow" id="admin-played-arrow">▼</span>
+    </div>
+    <div id="admin-played-list" style="display:none;"></div>
+  </div>
+
   <div class="card">
     <h2 style="margin-bottom:4px;">ランキング</h2>
     <div class="gen-toggle-row" id="gen-toggle-row"></div>
@@ -282,6 +385,7 @@ let songs = {};
 
 // ▼ Google Apps Script(ウェブアプリ)のURL ▼
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbzL3Ku8b5hfG6_UeWNwDLkDxBr_vM6VWBogzP--DpiXm62du9BRL8WPRzWLkySz6OE/exec";
+const NOWPLAYING_URL = SUBMIT_URL + "?action=getNowPlaying";
 
 const rankList = document.getElementById('rank-list');
 const lastUpdated = document.getElementById('last-updated');
@@ -474,24 +578,36 @@ async function fetchAndTally(){
         const playedRows = parseCSV(playedText);
         const newStatus = {};
         const newVotesAtPlay = {};
+        const newFromList = {};
+        const newPlayedAt = {};
         for(let i = 1; i < playedRows.length; i++){
           const row = playedRows[i];
           if(!row || row.length < 3) continue;
+          const timestamp = (row[0] || '').trim();
           const key = (row[1] || '').trim();
           const status = (row[2] || '').trim();
           const votesAtTime = parseInt(row[3], 10);
+          const fromListFlag = (row[4] || '').trim() === 'はい';
           if(!key) continue;
           if(status === 'played' || status === 'skipped'){
             newStatus[key] = status;
             if(status === 'played' && !isNaN(votesAtTime)){ newVotesAtPlay[key] = votesAtTime; }
             else{ delete newVotesAtPlay[key]; }
+            if(status === 'played' && fromListFlag){ newFromList[key] = true; }
+            else{ delete newFromList[key]; }
+            if(status === 'played' && timestamp){ newPlayedAt[key] = timestamp; }
+            else{ delete newPlayedAt[key]; }
           }else{
             delete newStatus[key];
             delete newVotesAtPlay[key];
+            delete newFromList[key];
+            delete newPlayedAt[key];
           }
         }
         songStatus = newStatus;
         songVotesAtPlay = newVotesAtPlay;
+        songFromList = newFromList;
+        songPlayedAt = newPlayedAt;
 
         // 直近60秒以内に自分が操作した曲は、サーバー側がまだ追いついていない可能性があるため、
         // サーバーの返答がこちらの操作と一致するまでは、自分の操作結果を優先する
@@ -527,10 +643,69 @@ async function fetchAndTally(){
 
 const isAdmin = new URLSearchParams(location.search).get('admin') === '1';
 
+// 管理者専用:これまでに「済」にした曲を一覧表示する(選曲リストとの突き合わせ用)
+function renderAdminPlayedList(){
+  if(!isAdmin) return;
+  const card = document.getElementById('admin-played-list-card');
+  const listEl = document.getElementById('admin-played-list');
+  card.style.display = 'block';
+
+  const playedSongs = Object.keys(songStatus)
+    .filter(key => songStatus[key] === 'played')
+    .map(key => ({
+      key,
+      name: (songs[key] && songs[key].name) || key,
+      time: songPlayedAt[key] || '',
+      fromList: !!songFromList[key]
+    }))
+    .sort((a, b) => (b.time || '').localeCompare(a.time || '')); // 新しい順
+
+  if(playedSongs.length === 0){
+    listEl.innerHTML = '<div class="empty" style="padding:16px 0;">まだ「済」にした曲がありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = playedSongs.map(s => `
+    <div class="admin-played-row">
+      <div class="admin-played-name ${s.fromList ? 'from-list' : ''}">${escapeHtml(s.name)}${s.fromList ? ' 📋' : ''}</div>
+      <div class="admin-played-time">${escapeHtml(s.time)}</div>
+    </div>
+  `).join('') + `<button class="admin-played-copy-btn" id="admin-played-copy-btn">📋 曲名だけコピーする</button>`;
+
+  const copyBtn = document.getElementById('admin-played-copy-btn');
+  if(copyBtn){
+    copyBtn.addEventListener('click', () => {
+      const text = playedSongs.map(s => s.name).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = '✓ コピーしました';
+        setTimeout(() => { copyBtn.textContent = '📋 曲名だけコピーする'; }, 2000);
+      }).catch(() => {
+        alert('コピーに失敗しました。手動で選択してコピーしてください。');
+      });
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if(!isAdmin) return;
+  const toggle = document.getElementById('admin-played-toggle');
+  const listEl = document.getElementById('admin-played-list');
+  const arrow = document.getElementById('admin-played-arrow');
+  if(toggle){
+    toggle.addEventListener('click', () => {
+      const isOpen = listEl.style.display !== 'none';
+      listEl.style.display = isOpen ? 'none' : 'block';
+      arrow.classList.toggle('open', !isOpen);
+    });
+  }
+});
+
 const STATUS_KEY = 'misafes_song_status';
 // ページ初回表示〜最初のCSV取得が終わるまでの一時的な表示用(すぐ共有データで上書きされます)
 let songStatus = {}; // { songKey: 'played' | 'skipped' }
 let songVotesAtPlay = {}; // { songKey: 済にした時点の得票数 }
+let songFromList = {}; // { songKey: true } 担当者の選曲リストから流した曲(投票外)
+let songPlayedAt = {}; // { songKey: 済みにした時刻の文字列 } 一覧の並び替え用
 const recentLocalChanges = {}; // { songKey: { status, votesAtTime, until } } 直近の自分の操作を一定時間守る
 try{
   const saved = localStorage.getItem(STATUS_KEY);
@@ -538,12 +713,18 @@ try{
 }catch(err){ songStatus = {}; }
 
 // 未対応→済→見送り→未対応 の順に切り替える
-async function cycleStatus(key){
+async function cycleStatus(key, fromList){
   const current = songStatus[key] || 'none';
   const next = current === 'none' ? 'played' : current === 'played' ? 'skipped' : 'none';
   const currentVotes = (songs[key] && songs[key].total) || 0;
-  if(next === 'none'){ delete songStatus[key]; delete songVotesAtPlay[key]; }
-  else{ songStatus[key] = next; if(next === 'played'){ songVotesAtPlay[key] = currentVotes; } else { delete songVotesAtPlay[key]; } }
+  if(next === 'none'){ delete songStatus[key]; delete songVotesAtPlay[key]; delete songFromList[key]; }
+  else{
+    songStatus[key] = next;
+    if(next === 'played'){
+      songVotesAtPlay[key] = currentVotes;
+      if(fromList) songFromList[key] = true; else delete songFromList[key];
+    }else{ delete songVotesAtPlay[key]; }
+  }
 
   // この操作を60秒間「確定」として扱い、その間はサーバー側の古いデータで上書きしない
   recentLocalChanges[key] = {
@@ -563,7 +744,8 @@ async function cycleStatus(key){
         action: 'togglePlayed',
         songKey: key,
         status: next === 'none' ? 'unplayed' : next,
-        votesAtTime: next === 'played' ? currentVotes : ''
+        votesAtTime: next === 'played' ? currentVotes : '',
+        fromList: next === 'played' && !!fromList
       })
     });
   }catch(err){
@@ -571,10 +753,44 @@ async function cycleStatus(key){
   }
 }
 
+// 「今まさに流している曲」を設定・解除する
+let nowPlayingKey = null;
+async function setNowPlaying(key){
+  nowPlayingKey = (nowPlayingKey === key) ? null : key; // もう一度押すと解除
+  renderRanking();
+  try{
+    await fetch(SUBMIT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'setNowPlaying', songKey: nowPlayingKey || '' })
+    });
+  }catch(err){
+    // 送信に失敗しても、次回の自動更新で共有状態と同期される
+  }
+}
+
+// 公開画面(来場者側)が、今流れている曲を定期的に確認する
+async function fetchNowPlaying(){
+  try{
+    const res = await fetch(NOWPLAYING_URL, { cache: 'no-store' });
+    if(!res.ok) return;
+    const data = await res.json();
+    const newKey = data.songKey || null;
+    if(newKey !== nowPlayingKey){
+      nowPlayingKey = newKey;
+      renderRanking();
+    }
+  }catch(err){
+    // 取得できなくても、通常表示のまま静かに継続する
+  }
+}
+
 // 「今すぐ取り消す」:状態に関わらず、その場で一発で未対応に戻す
 async function resetStatus(key){
   delete songStatus[key];
   delete songVotesAtPlay[key];
+  delete songFromList[key];
   recentLocalChanges[key] = { status: 'unplayed', votesAtTime: undefined, until: Date.now() + 60000 };
   renderRanking();
 
@@ -614,11 +830,22 @@ function renderRanking(){
       .map(([g,c]) => `${g}:${c}`).join(' / ');
     const status = songStatus[s.key] || 'none'; // 'none' | 'played' | 'skipped'
     const row = document.createElement('div');
-    row.className = 'rank-item' + (status !== 'none' ? ' status-' + status : '');
+    const isNowPlaying = nowPlayingKey && nowPlayingKey === s.key;
+    row.className = 'rank-item' + (status !== 'none' ? ' status-' + status : '') + (isNowPlaying ? ' is-now-playing' : '');
 
-    // 「済」にした後で、さらに票が増えているかチェック
+    // 今まさに流れている曲には、目立つ表示を追加する
+    const nowPlayingHtml = isNowPlaying ? `<div class="now-playing-badge">🎵 只今演奏中!</div>` : '';
+
+    // 「済」にした後で、さらに票が増えているかチェック。担当者リストから流した曲は、それ専用の案内にする
     let newVotesHtml = '';
-    if(status === 'played' && songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
+    if(status === 'played' && songFromList[s.key]){
+      if(songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
+        const gained = s.total - songVotesAtPlay[s.key];
+        newVotesHtml = `<div class="from-list-badge">📋 選曲リストから流れました(その後+${gained}票)</div>`;
+      }else{
+        newVotesHtml = `<div class="from-list-badge">📋 選曲リストから流れました(投票はまだ少なめです)</div>`;
+      }
+    }else if(status === 'played' && songVotesAtPlay[s.key] !== undefined && s.total > songVotesAtPlay[s.key]){
       const gained = s.total - songVotesAtPlay[s.key];
       row.classList.add('has-new-votes');
       newVotesHtml = `<div class="new-votes-badge">🔥 済み後、追加で+${gained}票</div><div class="played-hint">投票が増えると、また流れるかも…?</div>`;
@@ -630,9 +857,15 @@ function renderRanking(){
     if(isAdmin){
       const nextLabel = status === 'none' ? '済にする' : status === 'played' ? '音源なしにする' : '取り消す';
       toggleHtml = `<div class="played-toggle status-${status}">${nextLabel}</div>`;
+      if(status === 'none'){
+        toggleHtml += `<div class="played-fromlist-link">📋 リストから済にする</div>`;
+      }
       if(status !== 'none'){
         toggleHtml += `<div class="played-reset-link">✕ 今すぐ取り消す</div>`;
       }
+      toggleHtml += `<div class="now-playing-toggle ${isNowPlaying ? 'active' : ''}">${isNowPlaying ? '⏹ 演奏終了' : '▶️ 今流す'}</div>`;
+    }else if(status === 'played' && songFromList[s.key]){
+      toggleHtml = '<div class="played-badge badge-fromlist">📋 リストから</div>';
     }else if(status === 'played'){
       toggleHtml = '<div class="played-badge badge-played">済</div>';
     }else if(status === 'skipped'){
@@ -644,6 +877,7 @@ function renderRanking(){
       <div class="rank-info">
         <div class="rank-title">${escapeHtml(s.name)}</div>
         <div class="rank-sub">${escapeHtml(genBreakdown)}</div>
+        ${nowPlayingHtml}
         ${newVotesHtml}
       </div>
       <div class="rank-votes">${count}</div>
@@ -652,8 +886,15 @@ function renderRanking(){
     if(isAdmin){
       row.querySelector('.played-toggle').addEventListener('click', (e) => {
         e.stopPropagation();
-        cycleStatus(s.key);
+        cycleStatus(s.key, false);
       });
+      const fromListLink = row.querySelector('.played-fromlist-link');
+      if(fromListLink){
+        fromListLink.addEventListener('click', (e) => {
+          e.stopPropagation();
+          cycleStatus(s.key, true);
+        });
+      }
       const resetLink = row.querySelector('.played-reset-link');
       if(resetLink){
         resetLink.addEventListener('click', (e) => {
@@ -661,9 +902,17 @@ function renderRanking(){
           resetStatus(s.key);
         });
       }
+      const nowPlayingToggle = row.querySelector('.now-playing-toggle');
+      if(nowPlayingToggle){
+        nowPlayingToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setNowPlaying(s.key);
+        });
+      }
     }
     rankList.appendChild(row);
   });
+  renderAdminPlayedList();
 }
 
 function escapeHtml(str){
@@ -674,6 +923,8 @@ function escapeHtml(str){
 
 fetchAndTally();
 setInterval(fetchAndTally, 15000);
+fetchNowPlaying();
+setInterval(fetchNowPlaying, 5000); // 今流れている曲は、少し短めの間隔で確認する
 </script>
 </body>
 </html>
