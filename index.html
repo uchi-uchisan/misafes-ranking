@@ -448,11 +448,15 @@ async function fetchAndTally(){
     const text = await res.text();
     const rows = parseCSV(text);
 
+    // 「小学生以下」「10代」という古いラベルは、統合後の「10代以下」として数える
+    const GEN_ALIAS = { '小学生以下': '10代以下', '10代': '10代以下' };
+
     const newSongs = {};
     for(let i = 1; i < rows.length; i++){
       const row = rows[i];
       if(!row || row.length === 0) continue;
-      const gen = (row[COL_GEN] || '').trim();
+      let gen = (row[COL_GEN] || '').trim();
+      if(GEN_ALIAS[gen]) gen = GEN_ALIAS[gen];
       const songName = (row[COL_SONG] || '').trim();
       if(!songName) continue;
       const key = normalizeKey(songName);
