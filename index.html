@@ -153,6 +153,14 @@
     white-space:nowrap;
     margin-top:2px;
   }
+  .played-noaudio-link{
+    font-size:10px;
+    color:rgba(34,36,42,0.55);
+    cursor:pointer;
+    text-decoration:underline;
+    white-space:nowrap;
+    margin-top:2px;
+  }
   .now-playing-toggle{
     margin-top:6px;
     padding:5px 10px;
@@ -753,6 +761,26 @@ async function cycleStatus(key, fromList){
   }
 }
 
+// 「未対応」から、済を経由せず直接「音源なし」にする
+async function setDirectSkipped(key){
+  songStatus[key] = 'skipped';
+  delete songVotesAtPlay[key];
+  delete songFromList[key];
+  recentLocalChanges[key] = { status: 'skipped', votesAtTime: undefined, until: Date.now() + 60000 };
+  renderRanking();
+
+  try{
+    await fetch(SUBMIT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'togglePlayed', songKey: key, status: 'skipped', votesAtTime: '', fromList: false })
+    });
+  }catch(err){
+    // 送信に失敗しても、次回の自動更新で共有状態と同期される
+  }
+}
+
 // 「今まさに流している曲」を設定・解除する
 let nowPlayingKey = null;
 async function setNowPlaying(key){
@@ -834,7 +862,7 @@ function renderRanking(){
     row.className = 'rank-item' + (status !== 'none' ? ' status-' + status : '') + (isNowPlaying ? ' is-now-playing' : '');
 
     // 今まさに流れている曲には、目立つ表示を追加する
-    const nowPlayingHtml = isNowPlaying ? `<div class="now-playing-badge">🎵 只今演奏中!</div>` : '';
+    const nowPlayingHtml = isNowPlaying ? `<div class="now-playing-badge">🎵 ただいま再生中!</div>` : '';
 
     // 「済」にした後で、さらに票が増えているかチェック。担当者リストから流した曲は、それ専用の案内にする
     let newVotesHtml = '';
@@ -859,11 +887,12 @@ function renderRanking(){
       toggleHtml = `<div class="played-toggle status-${status}">${nextLabel}</div>`;
       if(status === 'none'){
         toggleHtml += `<div class="played-fromlist-link">📋 リストから済にする</div>`;
+        toggleHtml += `<div class="played-noaudio-link">🔇 音源なしにする</div>`;
       }
       if(status !== 'none'){
         toggleHtml += `<div class="played-reset-link">✕ 今すぐ取り消す</div>`;
       }
-      toggleHtml += `<div class="now-playing-toggle ${isNowPlaying ? 'active' : ''}">${isNowPlaying ? '⏹ 演奏終了' : '▶️ 今流す'}</div>`;
+      toggleHtml += `<div class="now-playing-toggle ${isNowPlaying ? 'active' : ''}">${isNowPlaying ? '⏹ 再生終了' : '▶️ 今流す'}</div>`;
     }else if(status === 'played' && songFromList[s.key]){
       toggleHtml = '<div class="played-badge badge-fromlist">📋 リストから</div>';
     }else if(status === 'played'){
@@ -893,6 +922,13 @@ function renderRanking(){
         fromListLink.addEventListener('click', (e) => {
           e.stopPropagation();
           cycleStatus(s.key, true);
+        });
+      }
+      const noAudioLink = row.querySelector('.played-noaudio-link');
+      if(noAudioLink){
+        noAudioLink.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setDirectSkipped(s.key);
         });
       }
       const resetLink = row.querySelector('.played-reset-link');
