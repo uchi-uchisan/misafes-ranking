@@ -628,10 +628,13 @@ async function fetchAndTally(){
             delete recentLocalChanges[key]; // サーバーに反映され確認できたので、以後はサーバー側の値を信用する
           }else{
             // まだ反映されていないので、自分の操作結果をそのまま維持する
-            if(change.status === 'unplayed'){ delete songStatus[key]; delete songVotesAtPlay[key]; }
+            if(change.status === 'unplayed'){ delete songStatus[key]; delete songVotesAtPlay[key]; delete songFromList[key]; }
             else{
               songStatus[key] = change.status;
               if(change.votesAtTime !== undefined){ songVotesAtPlay[key] = change.votesAtTime; }
+              if(change.fromList !== undefined){
+                if(change.fromList) songFromList[key] = true; else delete songFromList[key];
+              }
             }
           }
         }
@@ -738,6 +741,7 @@ async function cycleStatus(key, fromList){
   recentLocalChanges[key] = {
     status: next === 'none' ? 'unplayed' : next,
     votesAtTime: next === 'played' ? currentVotes : undefined,
+    fromList: next === 'played' ? !!fromList : undefined,
     until: Date.now() + 60000
   };
 
@@ -766,7 +770,7 @@ async function setDirectSkipped(key){
   songStatus[key] = 'skipped';
   delete songVotesAtPlay[key];
   delete songFromList[key];
-  recentLocalChanges[key] = { status: 'skipped', votesAtTime: undefined, until: Date.now() + 60000 };
+  recentLocalChanges[key] = { status: 'skipped', votesAtTime: undefined, fromList: undefined, until: Date.now() + 60000 };
   renderRanking();
 
   try{
@@ -783,8 +787,10 @@ async function setDirectSkipped(key){
 
 // 「今まさに流している曲」を設定・解除する
 let nowPlayingKey = null;
+let recentNowPlayingChange = null; // { value, until } 直近の自分の操作を一定時間守る
 async function setNowPlaying(key){
   nowPlayingKey = (nowPlayingKey === key) ? null : key; // もう一度押すと解除
+  recentNowPlayingChange = { value: nowPlayingKey, until: Date.now() + 60000 };
   renderRanking();
   try{
     await fetch(SUBMIT_URL, {
@@ -805,6 +811,18 @@ async function fetchNowPlaying(){
     if(!res.ok) return;
     const data = await res.json();
     const newKey = data.songKey || null;
+
+    // 直近60秒以内に自分が操作していて、まだサーバー側に反映が確認できていなければ、自分の操作を優先する
+    if(recentNowPlayingChange){
+      if(recentNowPlayingChange.until < Date.now()){
+        recentNowPlayingChange = null; // 保護期間終了、以後はサーバー側の値を信用する
+      }else if(newKey === recentNowPlayingChange.value){
+        recentNowPlayingChange = null; // サーバーに反映され確認できたので、保護終了
+      }else{
+        return; // まだ反映されていないので、今回の取得結果は無視する
+      }
+    }
+
     if(newKey !== nowPlayingKey){
       nowPlayingKey = newKey;
       renderRanking();
