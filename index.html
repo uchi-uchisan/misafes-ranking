@@ -930,6 +930,18 @@ function renderRanking(){
       <div class="rank-votes">${count}</div>
       <div class="played-toggle-col">${toggleHtml}</div>
     `;
+
+    // 曲名の行をタップすると、その曲を入力欄にセットして、そのまま投票できるようにする
+    // (管理者用の「済にする」等のボタンは、それぞれ個別にstopPropagation済みなので、ここには影響しない)
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => {
+      songInput.value = s.name;
+      updateSubmitBtn();
+      songInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      submitStatus.textContent = `「${s.name}」を選択しました。年代を選んで投票してください`;
+      submitStatus.classList.remove('error', 'success');
+    });
+
     if(isAdmin){
       row.querySelector('.played-toggle').addEventListener('click', (e) => {
         e.stopPropagation();
