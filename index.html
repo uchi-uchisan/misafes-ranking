@@ -119,6 +119,64 @@
   .status-line.success{ color:var(--gold); font-weight:700; }
 
   .rank-item{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(34,36,42,0.1); }
+  #vote-confirm-modal{
+    position:fixed; inset:0;
+    background:rgba(20,14,10,0.6);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:200;
+    padding:20px;
+  }
+  #vote-confirm-modal.active{ display:flex; }
+  .vote-confirm-box{
+    width:min(420px, 100%);
+    background:#fffaf0;
+    border-radius:16px;
+    padding:24px 20px;
+    box-shadow:0 20px 50px -12px rgba(0,0,0,0.4);
+  }
+  .vote-confirm-title{
+    font-size:14px;
+    color:rgba(42,23,16,0.6);
+    text-align:center;
+    margin-bottom:6px;
+  }
+  .vote-confirm-song{
+    font-size:19px;
+    font-weight:900;
+    color:var(--ink, #2a1710);
+    text-align:center;
+    margin-bottom:18px;
+    word-break:break-word;
+  }
+  .vote-confirm-gen-label{
+    font-size:12.5px;
+    color:rgba(42,23,16,0.6);
+    margin-bottom:8px;
+  }
+  .vote-confirm-btn{
+    display:block; width:100%;
+    padding:14px;
+    margin-top:16px;
+    background:var(--lantern, #e8542a);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:15px; font-weight:900;
+    cursor:pointer;
+  }
+  .vote-confirm-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .vote-confirm-cancel{
+    display:block; width:100%;
+    padding:12px;
+    margin-top:8px;
+    background:transparent;
+    border:1px solid rgba(42,23,16,0.25);
+    color:rgba(42,23,16,0.7);
+    border-radius:10px;
+    font-size:13.5px;
+    cursor:pointer;
+  }
   .rank-item:last-child{ border-bottom:none; }
   .rank-num{ width:28px; height:28px; background:rgba(36,52,92,0.1); color:var(--indigo-mid); display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:900; flex-shrink:0; }
   .rank-num.top{ background:var(--gold); color:#fff; }
@@ -332,6 +390,16 @@
 </style>
 </head>
 <body>
+<div id="vote-confirm-modal">
+  <div class="vote-confirm-box">
+    <div class="vote-confirm-title">この曲に投票しますか?</div>
+    <div class="vote-confirm-song" id="vote-confirm-song"></div>
+    <div class="vote-confirm-gen-label" id="vote-confirm-gen-label">あなたの年代を選んでください</div>
+    <div class="gen-row" id="vote-confirm-gen-row"></div>
+    <button class="vote-confirm-btn" id="vote-confirm-yes" disabled>投票する</button>
+    <button class="vote-confirm-cancel" id="vote-confirm-no">キャンセル</button>
+  </div>
+</div>
 <div class="noren">
   <div class="noren-eyebrow">みさフェス</div>
   <h1>音楽リクエスト ランキング</h1>
@@ -488,10 +556,8 @@ if(votesUsed >= MAX_VOTES){
   submitStatus.textContent = `この端末からのリクエストは上限に達しました。あと約${minutesUntilReset()}分で再びリクエストできます`;
 }
 
-submitBtn.addEventListener('click', async () => {
-  if(votesUsed >= MAX_VOTES) return;
-  const song = songInput.value.trim();
-  if(!selectedGen || !song) return;
+async function submitVote(song, gen){
+  if(votesUsed >= MAX_VOTES || !gen || !song) return;
   submitBtn.disabled = true;
   submitStatus.classList.remove('error', 'success');
   submitStatus.textContent = '送信中...';
@@ -501,7 +567,7 @@ submitBtn.addEventListener('click', async () => {
       method: 'POST',
       mode: 'no-cors', // Apps ScriptはCORS未対応のため、応答は読み取らず送信のみ行う
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ generation: selectedGen, song: song })
+      body: JSON.stringify({ generation: gen, song: song })
     });
     if(votesUsed === 0){ voteWindowStart = Date.now(); } // このリクエストで新しい1時間の枠を開始
     votesUsed++;
@@ -522,6 +588,69 @@ submitBtn.addEventListener('click', async () => {
   setTimeout(() => {
     if(votesUsed < MAX_VOTES){ submitStatus.textContent = ''; submitStatus.classList.remove('success','error'); }
   }, 5000);
+}
+
+submitBtn.addEventListener('click', () => {
+  submitVote(songInput.value.trim(), selectedGen);
+});
+
+// ---------- ランキングをタップした時の、投票確認モーダル ----------
+const voteConfirmModal = document.getElementById('vote-confirm-modal');
+const voteConfirmSongEl = document.getElementById('vote-confirm-song');
+const voteConfirmGenLabel = document.getElementById('vote-confirm-gen-label');
+const voteConfirmGenRow = document.getElementById('vote-confirm-gen-row');
+const voteConfirmYesBtn = document.getElementById('vote-confirm-yes');
+const voteConfirmNoBtn = document.getElementById('vote-confirm-no');
+let voteConfirmSong = null;
+let voteConfirmGen = selectedGen; // すでに年代を選んでいれば、それを引き継ぐ
+
+GENERATIONS.forEach(g => {
+  const el = document.createElement('div');
+  el.className = 'gen-toggle';
+  el.textContent = g;
+  el.addEventListener('click', () => {
+    voteConfirmGen = g;
+    voteConfirmGenRow.querySelectorAll('.gen-toggle').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    voteConfirmYesBtn.disabled = false;
+  });
+  voteConfirmGenRow.appendChild(el);
+});
+
+function openVoteConfirm(songName){
+  if(votesUsed >= MAX_VOTES){
+    submitStatus.textContent = `この端末からのリクエストは上限に達しました。あと約${minutesUntilReset()}分で再びリクエストできます`;
+    submitStatus.classList.add('error');
+    submitStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  voteConfirmSong = songName;
+  voteConfirmSongEl.textContent = `「${songName}」`;
+
+  // すでに年代を選んでいれば、その選択を引き継いで表示する(選び直しも可能)
+  voteConfirmGen = selectedGen;
+  voteConfirmGenRow.querySelectorAll('.gen-toggle').forEach(o => {
+    o.classList.toggle('active', o.textContent === selectedGen);
+  });
+  voteConfirmGenLabel.textContent = selectedGen ? 'あなたの年代(変更する場合はタップ)' : 'あなたの年代を選んでください';
+  voteConfirmYesBtn.disabled = !selectedGen;
+
+  voteConfirmModal.classList.add('active');
+}
+
+voteConfirmNoBtn.addEventListener('click', () => {
+  voteConfirmModal.classList.remove('active');
+});
+
+voteConfirmYesBtn.addEventListener('click', async () => {
+  if(!voteConfirmGen || !voteConfirmSong) return;
+  voteConfirmModal.classList.remove('active');
+  // モーダル内で選んだ年代は、下の投票フォームにも反映しておく(次回以降スムーズにするため)
+  selectedGen = voteConfirmGen;
+  submitGenRow.querySelectorAll('.gen-toggle').forEach(o => {
+    o.classList.toggle('active', o.textContent === selectedGen);
+  });
+  await submitVote(voteConfirmSong, voteConfirmGen);
 });
 
 function normalizeKey(name){
@@ -931,15 +1060,11 @@ function renderRanking(){
       <div class="played-toggle-col">${toggleHtml}</div>
     `;
 
-    // 曲名の行をタップすると、その曲を入力欄にセットして、そのまま投票できるようにする
+    // 曲名の行をタップすると、確認画面(年代確認込み)を開く
     // (管理者用の「済にする」等のボタンは、それぞれ個別にstopPropagation済みなので、ここには影響しない)
     row.style.cursor = 'pointer';
     row.addEventListener('click', () => {
-      songInput.value = s.name;
-      updateSubmitBtn();
-      songInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      submitStatus.textContent = `「${s.name}」を選択しました。年代を選んで投票してください`;
-      submitStatus.classList.remove('error', 'success');
+      openVoteConfirm(s.name);
     });
 
     if(isAdmin){
